@@ -43,19 +43,6 @@ standard deviations and the take profit at the lower Bollinger Band
 minus `bandStdProfitExit` standard deviations. The lot size is
 determined based on the `riskPerTrade` parameter.
 
-## Usage
-
-This strategy can be used on any forex pair and timeframe, but it is
-recommended to use it on a higher timeframe (such as H1 or above) to
-reduce the number of false signals.
-
-To use this strategy, copy the `BOMAWI Strategy.mq4` file into your
-MetaTrader 4 indicators folder
-(e.g. `C:\Program Files (x86)\MetaTrader 4\experts\indicators`). Then,
-compile the file in MetaEditor and attach the compiled indicator to the
-chart of your desired currency pair and timeframe. Set the parameters as
-desired and start trading.
-
 ## Disclaimer
 
 Trading involves risk and past performance is not indicative of future results. The algorithm provided in this repository is for educational purposes only and should not be used for live trading without thorough testing and analysis. The author and publisher of this repository are not responsible for any losses incurred as a result of using this algorithm.
