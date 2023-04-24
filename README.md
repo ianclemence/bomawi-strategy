@@ -56,7 +56,6 @@ compile the file in MetaEditor and attach the compiled indicator to the
 chart of your desired currency pair and timeframe. Set the parameters as
 desired and start trading.
 
-## Author
+## Disclaimer
 
-This strategy was written by Ian Clemence and can be found at
-https://www.mql5.com.
+Trading involves risk and past performance is not indicative of future results. The algorithm provided in this repository is for educational purposes only and should not be used for live trading without thorough testing and analysis. The author and publisher of this repository are not responsible for any losses incurred as a result of using this algorithm.
