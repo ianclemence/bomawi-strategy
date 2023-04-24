@@ -1,4 +1,4 @@
-# bomawi-strategy
+# BOMAWI Strategy
 
 This is a forex trading strategy coded in MQL4 that utilizes Bollinger
 Bands, MACD, and William's Percent Range (WPR) indicators to identify
