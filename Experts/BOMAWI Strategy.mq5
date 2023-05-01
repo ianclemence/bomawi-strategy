@@ -24,7 +24,7 @@ input int macdSlow = 26;
 input int macdSignal = 9;
 
 //William % R
-input int willPeriod = 9;
+input int willPeriod = 14;
 input int willLowerLevel = -80;
 input int willUpperLevel = -20;
 //+------------------------------------------------------------------+
@@ -81,9 +81,9 @@ void OnTick()
    ArraySetAsSeries(LowerBandLossArray, true);
 
 //define Bollinger Bands
-   int BollingerBands1 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdEntry,PRICE_CLOSE);
-   int BollingerBands2 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdProfitExit, PRICE_CLOSE);
-   int BollingerBands3 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdLossExit, PRICE_CLOSE);
+   int BollingerBands1 = iBands(_Symbol, PERIOD_CURRENT, bbPeriod, 0, bandStdEntry,PRICE_CLOSE);
+   int BollingerBands2 = iBands(_Symbol, PERIOD_CURRENT, bbPeriod, 0, bandStdProfitExit, PRICE_CLOSE);
+   int BollingerBands3 = iBands(_Symbol, PERIOD_CURRENT, bbPeriod, 0, bandStdLossExit, PRICE_CLOSE);
 
 //copy price info into the array
    CopyBuffer(BollingerBands1,0,0,3,MiddleBandArray);
@@ -107,41 +107,45 @@ void OnTick()
    double bbUpperLossExit = UpperBandLossArray[0];
    double bbLowerLossExit = LowerBandLossArray[0];
 
-//create an array for MACD
-   double macdArray[];
-//sort the price array from the current candle downwards
-   ArraySetAsSeries(macdArray, true);
-//define MACD
-   int macd = iMACD(NULL, PERIOD_CURRENT, macdFast, macdSlow, macdSignal, PRICE_CLOSE);
-//copy price info into the array
-   CopyBuffer(macd,0,0,3,macdArray);
-//calculate EA for the current candle
-   double macdValue = macdArray[0];
+//cretaing an array for prices for MACD main line, MACD signal line
+   double MACDMainLine[];
+   double MACDSignalLine[];
+
+//Defining MACD and its parameters
+   int MACDDef = iMACD(_Symbol, PERIOD_CURRENT, macdFast, macdSlow, macdSignal, PRICE_CLOSE);
+//Sorting price array from current data for MACD main line, MACD signal line
+   ArraySetAsSeries(MACDMainLine,true);
+//Storing results after defining MA, line, current data for MACD main line
+   CopyBuffer(MACDDef,0,0,3,MACDMainLine);
+//Get values of current data for MACD main line, MACD signal line
+   float MACDMainLineVal = (MACDMainLine[0]);
 
 //create an array for Williams' Percent Range
-   double willArray[];
+   double WPArray[];
 //sort the price array from the current candle downwards
-   ArraySetAsSeries(willArray, true);
+   ArraySetAsSeries(WPArray,true);
 //define Williams' Percent Range
-   int will = iWPR(NULL, PERIOD_CURRENT, willPeriod);
+   int WPDef = iWPR(_Symbol, PERIOD_CURRENT, willPeriod);
 //copy price info into the array
-   CopyBuffer(will,0,0,3,willArray);
-//calculate EA for the current candle
-   double willValue = willArray[0];
+   CopyBuffer(WPDef,0,0,3,WPArray);
+//Get value of current data for Williams' Percent Range
+   double WPVal = NormalizeDouble(WPArray[0],2);
+
 
 //number of decimal places (precision)
    int digits = SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
 
    if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
      {
-      if(Ask < bbLowerEntry && iOpen(NULL,0,1) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
+      if(Ask < bbLowerEntry && iOpen(NULL,0,1) > bbLowerEntry && WPVal < willLowerLevel && MACDMainLineVal < 0) //buying order
         {
-         PrintFormat("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
+         Comment("Buy signal","\n",
+                 "Lower Band Value is ",bbLowerEntry,"\n",
+                 "MACD Main Line Value is ",MACDMainLineVal,"\n",
+                 "Williams % R Value is ",WPVal);
+
          double stopLossPrice = NormalizeDouble(bbLowerLossExit, digits);
          double takeProfitPrice = NormalizeDouble(bbUpperProfitExit, digits);
-         PrintFormat("Entry Price = " + Ask);
-         PrintFormat("Stop Loss Price = " + stopLossPrice);
-         PrintFormat("Take Profit Price = " + takeProfitPrice);
 
          double lotSize = OptimalLotSize(riskPerTrade, Ask, stopLossPrice);
 
@@ -152,14 +156,15 @@ void OnTick()
            }
         }
       else
-         if(Bid > bbUpperEntry && iOpen(NULL,0,1) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
+         if(Bid > bbUpperEntry && iOpen(NULL,0,1) < bbUpperEntry && WPVal > willUpperLevel && MACDMainLineVal > 0) //selling order
            {
-            PrintFormat("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
+            Comment("Sell signal","\n",
+                    "Lower Band Value is ",bbUpperEntry,"\n",
+                    "MACD Main Line Value is ",MACDMainLineVal,"\n",
+                    "Williams % R Value is ",WPVal);
+
             double stopLossPrice = NormalizeDouble(bbUpperLossExit, digits);
             double takeProfitPrice = NormalizeDouble(bbLowerProfitExit, digits);
-            PrintFormat("Entry Price = " + Bid);
-            PrintFormat("Stop Loss Price = " + stopLossPrice);
-            PrintFormat("Take Profit Price = " + takeProfitPrice);
 
             double lotSize = OptimalLotSize(riskPerTrade, Bid, stopLossPrice);
 
@@ -197,7 +202,7 @@ void OnTick()
 
             if(positionType == POSITION_TYPE_BUY)//long position
               {
-               if(iClose(NULL,0,1) > (posOpenPrice + 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
+               if(iClose(_Symbol,0,1) > (posOpenPrice + 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
                  {
                   optimalStopLoss = posOpenPrice;
 
@@ -213,7 +218,7 @@ void OnTick()
             else
                if(positionType == POSITION_TYPE_SELL) //short position
                  {
-                  if(iClose(NULL,0,1) < (posOpenPrice - 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
+                  if(iClose(_Symbol,0,1) < (posOpenPrice - 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
                     {
                      optimalStopLoss = posOpenPrice;
 
