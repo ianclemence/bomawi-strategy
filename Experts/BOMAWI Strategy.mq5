@@ -135,7 +135,7 @@ void OnTick()
 //number of decimal places (precision)
    int digits = SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
 
-   if(CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC) == false)//if no open orders try to enter new position
+   if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
      {
       if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && WPVal < willLowerLevel && MACDMainLineVal < 0) //buying order
         {
