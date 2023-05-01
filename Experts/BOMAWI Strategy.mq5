@@ -135,9 +135,9 @@ void OnTick()
 //number of decimal places (precision)
    int digits = SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
 
-   if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
+   if(CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC) == false)//if no open orders try to enter new position
      {
-      if(Ask < bbLowerEntry && iOpen(NULL,0,1) > bbLowerEntry && WPVal < willLowerLevel && MACDMainLineVal < 0) //buying order
+      if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && WPVal < willLowerLevel && MACDMainLineVal < 0) //buying order
         {
          Comment("Buy signal","\n",
                  "Lower Band Value is ",bbLowerEntry,"\n",
@@ -156,7 +156,7 @@ void OnTick()
            }
         }
       else
-         if(Bid > bbUpperEntry && iOpen(NULL,0,1) < bbUpperEntry && WPVal > willUpperLevel && MACDMainLineVal > 0) //selling order
+         if(Bid > bbUpperEntry && iOpen(NULL,0,0) < bbUpperEntry && WPVal > willUpperLevel && MACDMainLineVal > 0) //selling order
            {
             Comment("Sell signal","\n",
                     "Lower Band Value is ",bbUpperEntry,"\n",

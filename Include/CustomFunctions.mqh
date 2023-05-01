@@ -186,33 +186,17 @@ double OptimalLotSize(double maxRiskPrc, double entryPrice, double stopLoss)
 //+------------------------------------------------------------------+
 bool CheckIfOpenPositionsByMagicNumber(int magicNumber)
   {
-   int openPositions = PositionsTotal();
+   int positions = PositionsTotal();
 
-   for(int i = 0; i < openPositions; i++)
+   for(int v = PositionsTotal() - 1; v >= 0; v--)
      {
-      // --- parameters of the order
-      ulong   position_ticket = PositionGetTicket(i); // ticket of the position
-      string position_symbol = PositionGetString(POSITION_SYMBOL); // symbol
-      int     digits = (int) SymbolInfoInteger(position_symbol, SYMBOL_DIGITS); // number of decimal places
-      ulong   magic = PositionGetInteger(POSITION_MAGIC); // MagicNumber of the position
-      double volume = PositionGetDouble(POSITION_VOLUME);    // volume of the position
-      double sl = PositionGetDouble(POSITION_SL);  // Stop Loss of the position
-      double tp = PositionGetDouble(POSITION_TP);  // Take Profit of the position
-      ENUM_POSITION_TYPE type = (ENUM_POSITION_TYPE) PositionGetInteger(POSITION_TYPE);   // type of the position
-      // --- output information about the position
-      PrintFormat("#% I64u% s% s% .2f% s sl:% s tp:% s [% I64d]",
-                  position_ticket,
-                  position_symbol,
-                  EnumToString(type),
-                  volume,
-                  DoubleToString(PositionGetDouble(POSITION_PRICE_OPEN), digits),
-                  DoubleToString(sl, digits),
-                  DoubleToString(tp, digits),
-                  magic);
+      ulong positionTicket = PositionGetTicket(v);
+      ulong  magic=PositionGetInteger(POSITION_MAGIC);
+      string positionSymbol = PositionGetString(POSITION_SYMBOL);
 
-      if(PositionSelectByTicket(i)==true)
+      if(PositionSelectByTicket(positionTicket))
         {
-         if(magic == magicNumber)
+         if(magic == magicNumber && positionSymbol == _Symbol)
            {
             return true;
            }
