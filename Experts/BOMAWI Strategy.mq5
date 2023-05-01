@@ -130,7 +130,7 @@ void OnTick()
 
    if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
      {
-      if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
+      if(Ask < bbLowerEntry && iClose(NULL,0,1) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
         {
          PrintFormat("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
          double stopLossPrice = NormalizeDouble(bbLowerLossExit, _Digits);
@@ -146,7 +146,7 @@ void OnTick()
             Alert("OrderSend error %d", GetLastError());
         }
       else
-         if(Bid > bbUpperEntry && iOpen(NULL,0,0) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
+         if(Bid > bbUpperEntry && iClose(NULL,0,1) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
            {
             PrintFormat("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
             double stopLossPrice = NormalizeDouble(bbUpperLossExit, _Digits);
