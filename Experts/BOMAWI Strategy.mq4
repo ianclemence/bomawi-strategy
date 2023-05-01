@@ -1,20 +1,15 @@
 //+------------------------------------------------------------------+
-//|                                                  BOMAWI Strategy.mq4 |
+//|                                              BOMAWI Strategy.mq5 |
 //|                                                     Ian Clemence |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Ian Clemence"
 #property link      "https://www.mql5.com"
 #property version   "1.00"
-#property strict
-#property show_inputs
 #include  <CustomFunctions.mqh>
+#define EXPERT_MAGIC 55555
 
 input double riskPerTrade = 0.02;
-
-int magicNB = 55555;
-
-int openOrderID;
 
 //Bolinger bands
 input int bbPeriod = 20;
@@ -23,16 +18,14 @@ input int bandStdProfitExit = 1;
 input int bandStdLossExit = 6;
 
 //MACD
-input int macd_fast = 12;
-input int macd_slow = 26;
-input int macd_signal = 9;
+input int macdFast = 12;
+input int macdSlow = 26;
+input int macdSignal = 9;
 
 //William % R
 input int willPeriod = 9;
 input int willLowerLevel = -80;
 input int willUpperLevel = -20;
-
-
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -41,7 +34,7 @@ int OnInit()
 //---
    Alert("");
    Alert("Starting BOMAWI Strategy");
-   
+
 //---
    return(INIT_SUCCEEDED);
   }
@@ -52,7 +45,7 @@ void OnDeinit(const int reason)
   {
 //---
    Alert("Stopping BOMAWI Strategy");
-   
+
   }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
@@ -60,85 +53,173 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
-   double bbLowerEntry = iBands(NULL,0,bbPeriod,bandStdEntry,0,PRICE_CLOSE,MODE_LOWER,0);
-   double bbUpperEntry = iBands(NULL,0,bbPeriod,bandStdEntry,0,PRICE_CLOSE,MODE_UPPER,0);
-   double bbMid = iBands(NULL,0,bbPeriod,bandStdEntry,0,PRICE_CLOSE,0,0);
-   
-   double bbLowerProfitExit = iBands(NULL,0,bbPeriod,bandStdProfitExit,0,PRICE_CLOSE,MODE_LOWER,0);
-   double bbUpperProfitExit = iBands(NULL,0,bbPeriod,bandStdProfitExit,0,PRICE_CLOSE,MODE_UPPER,0);
-   
-   double bbLowerLossExit = iBands(NULL,0,bbPeriod,bandStdLossExit,0,PRICE_CLOSE,MODE_LOWER,0);
-   double bbUpperLossExit = iBands(NULL,0,bbPeriod,bandStdLossExit,0,PRICE_CLOSE,MODE_UPPER,0);
-   
-   double macdValue = iMACD(NULL,0,macd_fast,macd_slow,macd_signal,PRICE_CLOSE,MODE_MAIN,0);
-   
-   double willValue = iWPR(NULL,0,willPeriod,0);
-   
-   if(!CheckIfOpenOrdersByMagicNB(magicNB))//if no open orders try to enter new position
-   {
-      if(Ask < bbLowerEntry && Open[0] > bbLowerEntry && willValue < willLowerLevel && macdValue < 0)//buying
-      {
-         Print("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
-         double stopLossPrice = NormalizeDouble(bbLowerLossExit,Digits);
-         double takeProfitPrice = NormalizeDouble(bbUpperProfitExit,Digits);;
-         Print("Entry Price = " + Ask);
-         Print("Stop Loss Price = " + stopLossPrice);
-         Print("Take Profit Price = " + takeProfitPrice);
-         
-         double lotSize = OptimalLotSize(riskPerTrade,Ask,stopLossPrice);
-         
-         openOrderID = OrderSend(NULL,OP_BUYLIMIT,lotSize,Ask,10,stopLossPrice,takeProfitPrice,NULL,magicNB);
-         if(openOrderID < 0) Alert("Order rejected. Order error: " + GetLastError());
-      }
-      else if(Bid > bbUpperEntry && Open[0] < bbUpperEntry && willValue > willUpperLevel && macdValue > 0)//shorting
-      {
-         Print("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
-         double stopLossPrice = NormalizeDouble(bbUpperLossExit,Digits);
-         double takeProfitPrice = NormalizeDouble(bbLowerProfitExit,Digits);
-         Print("Entry Price = " + Bid);
-         Print("Stop Loss Price = " + stopLossPrice);
-         Print("Take Profit Price = " + takeProfitPrice);
-   	  
-   	  double lotSize = OptimalLotSize(riskPerTrade,Bid,stopLossPrice);
+//define Ask, Bid
+   double Ask = NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
+   double Bid = NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
 
-   	  openOrderID = OrderSend(NULL,OP_SELLLIMIT,lotSize,Bid,10,stopLossPrice,takeProfitPrice,NULL,magicNB);
-   	  if(openOrderID < 0) Alert("Order rejected. Order error: " + GetLastError());
-      }   
-   }
-   else //else if you already have a position, update orders if need too.
-   {
-      if(OrderSelect(openOrderID,SELECT_BY_TICKET)==true)
-      {
-            int orderType = OrderType();// Short = 1, Long = 0
+//create an array for Bollinger Bands
+   double MiddleBandArray[];
+   double UpperBandEntryArray[];
+   double LowerBandEntryArray[];
 
-            double optimalTakeProfit;
-            
-            if(orderType == 0)//long position
-            {
-               optimalTakeProfit = NormalizeDouble(bbUpperProfitExit,Digits);
-               
-            }
-            else //if short
-            {
-               optimalTakeProfit = NormalizeDouble(bbLowerProfitExit,Digits);
-            }
+   double UpperBandProfitArray[];
+   double LowerBandProfitArray[];
 
-            double TP = OrderTakeProfit();
+   double UpperBandLossArray[];
+   double LowerBandLossArray[];
+
+//sort the price array from the current candle downwards
+   ArraySetAsSeries(MiddleBandArray, true);
+   ArraySetAsSeries(UpperBandEntryArray, true);
+   ArraySetAsSeries(LowerBandEntryArray, true);
+
+   ArraySetAsSeries(UpperBandProfitArray, true);
+   ArraySetAsSeries(LowerBandProfitArray, true);
+
+   ArraySetAsSeries(UpperBandLossArray, true);
+   ArraySetAsSeries(LowerBandLossArray, true);
+
+//define Bollinger Bands
+   int BollingerBands1 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdEntry,PRICE_CLOSE);
+   int BollingerBands2 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdProfitExit, PRICE_CLOSE);
+   int BollingerBands3 = iBands(NULL, PERIOD_CURRENT, bbPeriod, 0, bandStdLossExit, PRICE_CLOSE);
+
+//copy price info into the array
+   CopyBuffer(BollingerBands1,0,0,3,MiddleBandArray);
+   CopyBuffer(BollingerBands1,1,0,3,UpperBandEntryArray);
+   CopyBuffer(BollingerBands1,2,0,3,LowerBandEntryArray);
+
+   CopyBuffer(BollingerBands2,1,0,3,UpperBandProfitArray);
+   CopyBuffer(BollingerBands2,2,0,3,LowerBandProfitArray);
+
+   CopyBuffer(BollingerBands3,1,0,3,UpperBandLossArray);
+   CopyBuffer(BollingerBands3,2,0,3,LowerBandLossArray);
+
+//calculate EA for the current candle
+   double bbMid = MiddleBandArray[0];
+   double bbUpperEntry = UpperBandEntryArray[0];
+   double bbLowerEntry = LowerBandEntryArray[0];
+
+   double bbUpperProfitExit = UpperBandProfitArray[0];
+   double bbLowerProfitExit = LowerBandProfitArray[0];
+
+   double bbUpperLossExit = UpperBandLossArray[0];
+   double bbLowerLossExit = LowerBandLossArray[0];
+
+//create an array for MACD
+   double macdArray[];
+//sort the price array from the current candle downwards
+   ArraySetAsSeries(macdArray, true);
+//define MACD
+   int macd = iMACD(NULL, PERIOD_CURRENT, macdFast, macdSlow, macdSignal, PRICE_CLOSE);
+//copy price info into the array
+   CopyBuffer(macd,0,0,3,macdArray);
+//calculate EA for the current candle
+   double macdValue = macdArray[0];
+
+//create an array for Williams' Percent Range
+   double willArray[];
+//sort the price array from the current candle downwards
+   ArraySetAsSeries(willArray, true);
+//define Williams' Percent Range
+   int will = iWPR(NULL, PERIOD_CURRENT, willPeriod);
+//copy price info into the array
+   CopyBuffer(will,0,0,3,willArray);
+//calculate EA for the current candle
+   double willValue = willArray[0];
+
+   if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
+     {
+      if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
+        {
+         PrintFormat("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
+         double stopLossPrice = NormalizeDouble(bbLowerLossExit, _Digits);
+         double takeProfitPrice = NormalizeDouble(bbUpperProfitExit, _Digits);
+         PrintFormat("Entry Price = " + Ask);
+         PrintFormat("Stop Loss Price = " + stopLossPrice);
+         PrintFormat("Take Profit Price = " + takeProfitPrice);
+
+         double lotSize = OptimalLotSize(riskPerTrade, Ask, stopLossPrice);
+
+         int orderID = SendOrder(EXPERT_MAGIC, Symbol(), lotSize, stopLossPrice, takeProfitPrice, ORDER_TYPE_BUY_LIMIT, Ask);
+         if(orderID < 0)
+            Alert("OrderSend error %d", GetLastError());
+        }
+      else
+         if(Bid > bbUpperEntry && iOpen(NULL,0,0) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
+           {
+            PrintFormat("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
+            double stopLossPrice = NormalizeDouble(bbUpperLossExit, _Digits);
+            double takeProfitPrice = NormalizeDouble(bbLowerProfitExit, _Digits);
+            PrintFormat("Entry Price = " + Bid);
+            PrintFormat("Stop Loss Price = " + stopLossPrice);
+            PrintFormat("Take Profit Price = " + takeProfitPrice);
+
+            double lotSize = OptimalLotSize(riskPerTrade, Bid, stopLossPrice);
+
+            int orderID = SendOrder(EXPERT_MAGIC, Symbol(), lotSize, stopLossPrice, takeProfitPrice, ORDER_TYPE_SELL_LIMIT, Bid);
+            if(orderID < 0)
+               Alert("OrderSend error %d", GetLastError());
+           }
+     }
+   else //else if you already have a position, update the position if you need to.
+     {
+      MqlTradeRequest request;
+      MqlTradeResult  result;
+      double optimalTakeProfit;
+
+      for(int i=0; i<PositionsTotal(); i++)
+        {
+         ulong positionTicket = PositionGetTicket(i);// ticket of the position
+
+         if(positionTicket > 0)
+           {
+            //--- parameters of the order
+            string positionSymbol = PositionGetString(POSITION_SYMBOL); // symbol
+            int digits = (int)SymbolInfoInteger(positionSymbol,SYMBOL_DIGITS); // number of decimal places
+            ulong magic = PositionGetInteger(POSITION_MAGIC); // MagicNumber of the position
+            double volume = PositionGetDouble(POSITION_VOLUME);    // volume of the position
+            double stopLoss = PositionGetDouble(POSITION_SL);  // Stop Loss of the position
+            double takeProfit = PositionGetDouble(POSITION_TP);  // Take Profit of the position
+            ENUM_POSITION_TYPE positionType=(ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);  // type of the position
+
+            if(positionType == POSITION_TYPE_BUY)//long position
+              {
+               optimalTakeProfit = NormalizeDouble(bbUpperProfitExit, _Digits);
+              }
+            else
+               if(positionType == POSITION_TYPE_SELL) //short position
+                 {
+                  optimalTakeProfit = NormalizeDouble(bbLowerProfitExit, _Digits);
+                 }
+
+            double TP = PositionGetDouble(POSITION_TP);
             double TPdistance = MathAbs(TP - optimalTakeProfit);
-            if(TP != optimalTakeProfit && TPdistance > 0.0001)
-            {
-               bool Ans = OrderModify(openOrderID,OrderOpenPrice(),OrderStopLoss(),optimalTakeProfit,0);
-            
-               if (Ans==true)                     
-               {
-                  Print("Order modified: ",openOrderID);
-                  return;                           
-               }else
-               {
-                  Print("Unable to modify order: ",openOrderID);
-               }   
-            }
-         }
-      }   
+
+            if(magic == EXPERT_MAGIC && TP != optimalTakeProfit && TPdistance > 0.0001)
+              {
+               // --- zeroing the request and result values
+               ZeroMemory(request);
+               ZeroMemory(result);
+               // --- setting the operation parameters
+               request.action = TRADE_ACTION_SLTP ; // type of trade operation
+               request.position = positionTicket;   // ticket of the position
+               request.symbol = PositionGetString(POSITION_SYMBOL);     // symbol
+               request.sl = stopLoss;                // Stop Loss of the position
+               request.tp = optimalTakeProfit;                // Take Profit of the position
+               request.magic = EXPERT_MAGIC;         // MagicNumber of the position
+               // --- output information about the modification
+               PrintFormat("Modify #% I64d% s% s", positionTicket, positionSymbol, positionType);
+               // --- send the request
+               if(!OrderSend(request, result))
+                  Alert("OrderSend error %d", + GetLastError());  // if unable to send the request, output the error code
+               // --- information about the operation
+               PrintFormat("retcode=%u  deal=%I64u  order=%I64u", result.retcode, result.deal, result.order);
+              }
+
+           }
+        }
+     }
+
   }
 //+------------------------------------------------------------------+

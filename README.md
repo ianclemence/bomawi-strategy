@@ -1,6 +1,6 @@
 # BOMAWI Strategy
 
-This is a forex trading strategy coded in MQL4 that utilizes Bollinger
+This is a forex trading strategy coded in MQL5 that utilizes Bollinger
 Bands, MACD, and William's Percent Range (WPR) indicators to identify
 potential trade opportunities.
 
@@ -12,7 +12,7 @@ The strategy has the following parameters that can be customized:
     risk per trade.
 -   `bbPeriod`, `bandStdEntry`, `bandStdProfitExit`, `bandStdLossExit` -
     parameters for the Bollinger Bands indicator.
--   `macd_fast`, `macd_slow`, `macd_signal` - parameters for the MACD
+-   `macdFast`, `macdSlow`, `macdSignal` - parameters for the MACD
     indicator.
 -   `willPeriod`, `willLowerLevel`, `willUpperLevel` - parameters for
     the William's Percent Range indicator.
