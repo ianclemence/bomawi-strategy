@@ -128,13 +128,16 @@ void OnTick()
 //calculate EA for the current candle
    double willValue = willArray[0];
 
+//number of decimal places (precision)
+   int digits = SymbolInfoInteger(_Symbol,SYMBOL_DIGITS);
+
    if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
      {
-      if(Ask < bbLowerEntry && iClose(NULL,0,1) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
+      if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
         {
          PrintFormat("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
-         double stopLossPrice = NormalizeDouble(bbLowerLossExit, _Digits);
-         double takeProfitPrice = NormalizeDouble(bbUpperProfitExit, _Digits);
+         double stopLossPrice = NormalizeDouble(bbLowerLossExit, digits);
+         double takeProfitPrice = NormalizeDouble(bbUpperProfitExit, digits);
          PrintFormat("Entry Price = " + Ask);
          PrintFormat("Stop Loss Price = " + stopLossPrice);
          PrintFormat("Take Profit Price = " + takeProfitPrice);
@@ -143,14 +146,16 @@ void OnTick()
 
          int orderID = SendOrder(EXPERT_MAGIC, Symbol(), lotSize, stopLossPrice, takeProfitPrice, ORDER_TYPE_BUY_LIMIT, Ask);
          if(orderID < 0)
+           {
             Alert("OrderSend error %d", GetLastError());
+           }
         }
       else
-         if(Bid > bbUpperEntry && iClose(NULL,0,1) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
+         if(Bid > bbUpperEntry && iOpen(NULL,0,0) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
            {
             PrintFormat("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
-            double stopLossPrice = NormalizeDouble(bbUpperLossExit, _Digits);
-            double takeProfitPrice = NormalizeDouble(bbLowerProfitExit, _Digits);
+            double stopLossPrice = NormalizeDouble(bbUpperLossExit, digits);
+            double takeProfitPrice = NormalizeDouble(bbLowerProfitExit, digits);
             PrintFormat("Entry Price = " + Bid);
             PrintFormat("Stop Loss Price = " + stopLossPrice);
             PrintFormat("Take Profit Price = " + takeProfitPrice);
@@ -159,7 +164,9 @@ void OnTick()
 
             int orderID = SendOrder(EXPERT_MAGIC, Symbol(), lotSize, stopLossPrice, takeProfitPrice, ORDER_TYPE_SELL_LIMIT, Bid);
             if(orderID < 0)
+              {
                Alert("OrderSend error %d", GetLastError());
+              }
            }
      }
    else //else if you already have a position, update the position if you need to.
@@ -185,12 +192,12 @@ void OnTick()
 
             if(positionType == POSITION_TYPE_BUY)//long position
               {
-               optimalTakeProfit = NormalizeDouble(bbUpperProfitExit, _Digits);
+               optimalTakeProfit = NormalizeDouble(bbUpperProfitExit, digits);
               }
             else
                if(positionType == POSITION_TYPE_SELL) //short position
                  {
-                  optimalTakeProfit = NormalizeDouble(bbLowerProfitExit, _Digits);
+                  optimalTakeProfit = NormalizeDouble(bbLowerProfitExit, digits);
                  }
 
             double TP = PositionGetDouble(POSITION_TP);
@@ -204,7 +211,7 @@ void OnTick()
                // --- setting the operation parameters
                request.action = TRADE_ACTION_SLTP ; // type of trade operation
                request.position = positionTicket;   // ticket of the position
-               request.symbol = PositionGetString(POSITION_SYMBOL);     // symbol
+               request.symbol = positionSymbol;     // symbol
                request.sl = stopLoss;                // Stop Loss of the position
                request.tp = optimalTakeProfit;                // Take Profit of the position
                request.magic = EXPERT_MAGIC;         // MagicNumber of the position

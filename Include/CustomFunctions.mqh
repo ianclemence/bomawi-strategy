@@ -70,7 +70,7 @@ double CalculateStopLoss(bool isLong, double entryPrice, int pips)
 //+------------------------------------------------------------------+
 double GetPipValue()
   {
-   if(_Digits >=4)
+   if(SymbolInfoInteger(_Symbol,SYMBOL_DIGITS) >= 4)
      {
       return 0.0001;
      }
@@ -131,8 +131,13 @@ bool IsTradingAllowed()
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double OptimalLotSize(double maxRiskPrc, int maxLossInPips)
+double OptimalLotSize(double maxRiskPrc, double entryPrice, double stopLoss)
   {
+//default lotsize
+
+   double lotSize = 0.01;
+
+   int maxLossInPips = MathAbs(entryPrice - stopLoss)/GetPipValue();
 
    double accEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    PrintFormat("accEquity: " + accEquity);
@@ -142,7 +147,7 @@ double OptimalLotSize(double maxRiskPrc, int maxLossInPips)
 
    double tickValue = SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
 
-   if(_Digits <= 3)
+   if(SymbolInfoInteger(_Symbol,SYMBOL_DIGITS) <= 3)
      {
       tickValue = tickValue /100;
      }
@@ -157,7 +162,14 @@ double OptimalLotSize(double maxRiskPrc, int maxLossInPips)
 
    double optimalLotSize = NormalizeDouble(maxLossInQuoteCurr /(maxLossInPips * GetPipValue())/contractSize,2);
 
-   return optimalLotSize;
+   if(optimalLotSize > 0)
+     {
+      return optimalLotSize;
+     }
+   else
+     {
+      return lotSize;
+     }
 
   }
 
@@ -165,11 +177,8 @@ double OptimalLotSize(double maxRiskPrc, int maxLossInPips)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double OptimalLotSize(double maxRiskPrc, double entryPrice, double stopLoss)
-  {
-   int maxLossInPips = MathAbs(entryPrice - stopLoss)/GetPipValue();
-   return OptimalLotSize(maxRiskPrc,maxLossInPips);
-  }
+//---
+
 
 
 //+------------------------------------------------------------------+
