@@ -7,6 +7,7 @@
 #property link      "https://www.mql5.com"
 #property version   "1.00"
 #include  <CustomFunctions.mqh>
+
 #define EXPERT_MAGIC 55555
 
 input double riskPerTrade = 0.02;
@@ -133,7 +134,7 @@ void OnTick()
 
    if(!CheckIfOpenPositionsByMagicNumber(EXPERT_MAGIC))//if no open orders try to enter new position
      {
-      if(Ask < bbLowerEntry && iOpen(NULL,0,0) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
+      if(Ask < bbLowerEntry && iOpen(NULL,0,1) > bbLowerEntry && willValue < willLowerLevel && macdValue < 0) //buying order
         {
          PrintFormat("Price is below bbLower, willValue is lower than " + willLowerLevel+ " and macdValue is less than 0, Sending buy order");
          double stopLossPrice = NormalizeDouble(bbLowerLossExit, digits);
@@ -151,7 +152,7 @@ void OnTick()
            }
         }
       else
-         if(Bid > bbUpperEntry && iOpen(NULL,0,0) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
+         if(Bid > bbUpperEntry && iOpen(NULL,0,1) < bbUpperEntry && willValue > willUpperLevel && macdValue > 0) //selling order
            {
             PrintFormat("Price is above bbUpper, willValue is above " + willUpperLevel + " and macdValue is less than 0, Sending short order");
             double stopLossPrice = NormalizeDouble(bbUpperLossExit, digits);
@@ -174,12 +175,15 @@ void OnTick()
       MqlTradeRequest request;
       MqlTradeResult  result;
       double optimalTakeProfit;
+      double optimalStopLoss;
+      double TP;
+      double TPdistance;
 
-      for(int i=0; i<PositionsTotal(); i++)
+      for(int i=PositionsTotal()-1; i>=0; i--)
         {
          ulong positionTicket = PositionGetTicket(i);// ticket of the position
 
-         if(positionTicket > 0)
+         if(PositionSelectByTicket(positionTicket) && POSITION_MAGIC == EXPERT_MAGIC && PositionGetString(POSITION_SYMBOL) == _Symbol)
            {
             //--- parameters of the order
             string positionSymbol = PositionGetString(POSITION_SYMBOL); // symbol
@@ -188,22 +192,42 @@ void OnTick()
             double volume = PositionGetDouble(POSITION_VOLUME);    // volume of the position
             double stopLoss = PositionGetDouble(POSITION_SL);  // Stop Loss of the position
             double takeProfit = PositionGetDouble(POSITION_TP);  // Take Profit of the position
+            double posOpenPrice = PositionGetDouble(POSITION_PRICE_OPEN); // Position open price
             ENUM_POSITION_TYPE positionType=(ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);  // type of the position
 
             if(positionType == POSITION_TYPE_BUY)//long position
               {
-               optimalTakeProfit = NormalizeDouble(bbUpperProfitExit, digits);
+               if(iClose(NULL,0,1) > (posOpenPrice + 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
+                 {
+                  optimalStopLoss = posOpenPrice;
+
+                  if(optimalStopLoss > stopLoss)
+                    {
+                     optimalTakeProfit = NormalizeDouble(bbUpperProfitExit, digits);
+                    }
+
+                  TP = PositionGetDouble(POSITION_TP);
+                  TPdistance = MathAbs(TP - optimalTakeProfit);
+                 }
               }
             else
                if(positionType == POSITION_TYPE_SELL) //short position
                  {
-                  optimalTakeProfit = NormalizeDouble(bbLowerProfitExit, digits);
+                  if(iClose(NULL,0,1) < (posOpenPrice - 1000 * SymbolInfoDouble(_Symbol,SYMBOL_POINT)))
+                    {
+                     optimalStopLoss = posOpenPrice;
+
+                     if(optimalStopLoss < stopLoss)
+                       {
+                        optimalTakeProfit = NormalizeDouble(bbLowerProfitExit, digits);
+                       }
+
+                     TP = PositionGetDouble(POSITION_TP);
+                     TPdistance = MathAbs(TP - optimalTakeProfit);
+                    }
                  }
 
-            double TP = PositionGetDouble(POSITION_TP);
-            double TPdistance = MathAbs(TP - optimalTakeProfit);
-
-            if(magic == EXPERT_MAGIC && TP != optimalTakeProfit && TPdistance > 0.0001)
+            if(TP != optimalTakeProfit && TPdistance > 0.0001)
               {
                // --- zeroing the request and result values
                ZeroMemory(request);
@@ -212,7 +236,7 @@ void OnTick()
                request.action = TRADE_ACTION_SLTP ; // type of trade operation
                request.position = positionTicket;   // ticket of the position
                request.symbol = positionSymbol;     // symbol
-               request.sl = stopLoss;                // Stop Loss of the position
+               request.sl = optimalStopLoss;                // Stop Loss of the position
                request.tp = optimalTakeProfit;                // Take Profit of the position
                request.magic = EXPERT_MAGIC;         // MagicNumber of the position
                // --- output information about the modification
@@ -226,6 +250,7 @@ void OnTick()
 
            }
         }
+
      }
 
   }
