@@ -219,15 +219,10 @@ bool CheckIfOpenPositionsByMagicNumber(int magicNumber)
         }
      }
 
-   if(openOrders == 2 || positions == 2)
+   if(openOrders == 2 || positions >= 2)
      {
       return true; // you cannot trade
      }
-   else
-      if(openOrders < 2 || positions < 2)
-        {
-         return false; // you can trade
-        }
 
    return false; // you can trade
   }
