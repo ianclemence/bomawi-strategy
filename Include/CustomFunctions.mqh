@@ -186,23 +186,50 @@ double OptimalLotSize(double maxRiskPrc, double entryPrice, double stopLoss)
 //+------------------------------------------------------------------+
 bool CheckIfOpenPositionsByMagicNumber(int magicNumber)
   {
-   int positions = PositionsTotal();
+   int positions = 0;
+   int openOrders = 0;
 
    for(int v = PositionsTotal() - 1; v >= 0; v--)
      {
       ulong positionTicket = PositionGetTicket(v);
-      ulong  magic=PositionGetInteger(POSITION_MAGIC);
+      ulong  positionMagic=PositionGetInteger(POSITION_MAGIC);
       string positionSymbol = PositionGetString(POSITION_SYMBOL);
 
       if(PositionSelectByTicket(positionTicket))
         {
-         if(magic == magicNumber && positionSymbol == _Symbol)
+         if(positionMagic == magicNumber && positionSymbol == _Symbol)
            {
-            return true;
+            positions++;
            }
         }
      }
-   return false;
+
+   for(int v = OrdersTotal() - 1; v >= 0; v--)
+     {
+      ulong orderTicket = OrderGetTicket(v);
+      ulong  orderMagic= OrderGetInteger(ORDER_MAGIC);
+      string orderSymbol = OrderGetString(ORDER_SYMBOL);
+
+      if(OrderSelect(orderTicket))
+        {
+         if(orderMagic == magicNumber && orderSymbol == _Symbol)
+           {
+            openOrders++;
+           }
+        }
+     }
+
+   if(openOrders == 2 || positions == 2)
+     {
+      return true; // you cannot trade
+     }
+   else
+      if(openOrders < 2 || positions < 2)
+        {
+         return false; // you can trade
+        }
+
+   return false; // you can trade
   }
 
 
