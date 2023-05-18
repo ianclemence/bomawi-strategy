@@ -1,10 +1,10 @@
 //+------------------------------------------------------------------+
 //|                                              BOMAWI Strategy.mq5 |
 //|                                                     Ian Clemence |
-//|                                             https://www.mql5.com |
+//|                   https://github.com/ianclemence/bomawi-strategy |
 //+------------------------------------------------------------------+
 #property copyright "Ian Clemence"
-#property link      "https://www.mql5.com"
+#property link      "https://github.com/ianclemence/bomawi-strategy"
 #property version   "1.00"
 #include  <CustomFunctions.mqh>
 
