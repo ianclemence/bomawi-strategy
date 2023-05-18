@@ -1,11 +1,10 @@
 //+------------------------------------------------------------------+
 //|                                              CustomFunctions.mqh |
 //|                                                     Ian Clemence |
-//|                                             https://www.mql5.com |
+//|                   https://github.com/ianclemence/bomawi-strategy |
 //+------------------------------------------------------------------+
 #property copyright "Ian Clemence"
-#property link      "https://www.mql5.com"
-
+#property link      "https://github.com/ianclemence/bomawi-strategy"
 //+------------------------------------------------------------------+
 //| defines                                                          |
 //+------------------------------------------------------------------+
@@ -26,6 +25,7 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
+
 
 
 //+------------------------------------------------------------------+
